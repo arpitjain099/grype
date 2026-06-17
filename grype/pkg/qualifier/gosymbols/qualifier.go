@@ -70,11 +70,15 @@ func (q gosymbolsQualifier) Satisfied(p pkg.Package) (bool, error) {
 var typeParamPattern = regexp.MustCompile(`\[[^]]*]`)
 
 // normalizeSymbol converts a symbol name as found in a binary symbol table into govulndb's symbol
-// naming convention: pointer receivers lose their "(*...)" decoration and generic instantiations
-// lose their type parameters, e.g. "golang.org/x/net/html.(*Tokenizer[go.shape.int]).Next" becomes
-// "golang.org/x/net/html.Tokenizer.Next".
+// naming convention so the two can be compared:
+//   - pointer-receiver decoration is removed: "pkg.(*T).M" -> "pkg.T.M"
+//   - generic instantiations lose their type parameters: "pkg.(*T[go.shape.int]).M" -> "pkg.T.M"
+//   - the compiler's "-fm" method-value-wrapper suffix is removed: "pkg.(*T).M-fm" -> "pkg.T.M".
+//     A method-value wrapper is emitted when a method is referenced as a value (e.g. passed as a
+//     callback), so its presence means the underlying method is used.
 func normalizeSymbol(symbol string) string {
 	symbol = strings.ReplaceAll(symbol, "(*", "")
 	symbol = strings.ReplaceAll(symbol, ")", "")
+	symbol = strings.TrimSuffix(symbol, "-fm")
 	return typeParamPattern.ReplaceAllString(symbol, "")
 }

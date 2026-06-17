@@ -18,6 +18,7 @@ func TestGoSymbolsQualifier_Satisfied(t *testing.T) {
 				"golang.org/x/net/html.(*Tokenizer).Next",
 				"golang.org/x/net/html.Parse",
 				"golang.org/x/net/http2.(*Framer[go.shape.int]).ReadFrame",
+				"golang.org/x/net/html.(*Tokenizer).readComment-fm",
 			},
 		},
 	}
@@ -60,6 +61,12 @@ func TestGoSymbolsQualifier_Satisfied(t *testing.T) {
 		{
 			name:      "vulnerable generic method present in binary (type parameter normalization)",
 			imports:   []Import{{Path: "golang.org/x/net/http2", Symbols: []string{"Framer.ReadFrame"}}},
+			pkg:       binaryPkg,
+			satisfied: true,
+		},
+		{
+			name:      "vulnerable method present only as a method-value wrapper (-fm normalization)",
+			imports:   []Import{{Path: "golang.org/x/net/html", Symbols: []string{"Tokenizer.readComment"}}},
 			pkg:       binaryPkg,
 			satisfied: true,
 		},
