@@ -53,6 +53,12 @@ func TestGoVulnDBTransform(t *testing.T) {
 						},
 						BlobValue: &db.PackageBlob{
 							CVEs: []string{"CVE-2020-36567", "GHSA-6vm3-jj99-7229"},
+							Qualifiers: &db.PackageQualifiers{
+								GoImports: []db.GoImport{{
+									Path:    "github.com/gin-gonic/gin",
+									Symbols: []string{"Default", "Logger", "LoggerWithConfig", "LoggerWithFormatter", "LoggerWithWriter"},
+								}},
+							},
 							Ranges: []db.Range{{
 								Version: db.Version{
 									Type:       "go",
@@ -115,6 +121,12 @@ func TestGoVulnDBTransform(t *testing.T) {
 						},
 						BlobValue: &db.PackageBlob{
 							CVEs: []string{"CVE-2022-27664", "GHSA-69cg-p879-7622"},
+							Qualifiers: &db.PackageQualifiers{
+								GoImports: []db.GoImport{{
+									Path:    "golang.org/x/net/http2",
+									Symbols: []string{"Server.ServeConn", "serverConn.goAway"},
+								}},
+							},
 							Ranges: []db.Range{{
 								Version: db.Version{
 									Type:       "go",
@@ -134,6 +146,16 @@ func TestGoVulnDBTransform(t *testing.T) {
 						},
 						BlobValue: &db.PackageBlob{
 							CVEs: []string{"CVE-2022-27664", "GHSA-69cg-p879-7622"},
+							Qualifiers: &db.PackageQualifiers{
+								GoImports: []db.GoImport{{
+									Path: "net/http",
+									Symbols: []string{
+										"ListenAndServe", "ListenAndServeTLS", "Serve", "ServeTLS",
+										"Server.ListenAndServe", "Server.ListenAndServeTLS", "Server.Serve", "Server.ServeTLS",
+										"http2Server.ServeConn", "http2serverConn.goAway",
+									},
+								}},
+							},
 							Ranges: []db.Range{{
 								Version: db.Version{
 									Type:       "go",

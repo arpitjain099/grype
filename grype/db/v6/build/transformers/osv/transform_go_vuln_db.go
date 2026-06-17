@@ -1,6 +1,7 @@
 package osv
 
 import (
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
@@ -34,8 +35,9 @@ import (
 //     constraints as GolangFormat (which handles Go pseudo-versions like
 //     v0.0.0-<timestamp>-<commit>).
 //   - `ecosystem_specific.imports` (symbol-level reachability info) is
-//     intentionally dropped: grype matches at module granularity and has no
-//     way to use per-symbol vulnerability info today.
+//     carried into the package blob as a go-imports qualifier so that
+//     packages cataloged with binary symbol evidence only match when at
+//     least one vulnerable symbol is present in the binary.
 //   - References pass through with their OSV type as a tag; refID is left
 //     empty (the GO records' references don't include the canonical advisory
 //     page in `references` — that lives in `database_specific.url`, which we
@@ -111,16 +113,42 @@ func govulndbAffectedPackages(vuln unmarshal.OSVVulnerability) []db.AffectedPack
 		for _, r := range affected.Ranges {
 			ranges = append(ranges, getGrypeRangesFromRange(r, govulndbRangeType(r.Type))...)
 		}
+		var qualifiers *db.PackageQualifiers
+		if imports := govulndbImports(affected); len(imports) > 0 {
+			qualifiers = &db.PackageQualifiers{GoImports: imports}
+		}
 		aphs = append(aphs, db.AffectedPackageHandle{
 			Package: govulndbPackage(affected.Package),
 			BlobValue: &db.PackageBlob{
-				CVEs:   vuln.Aliases,
-				Ranges: ranges,
+				CVEs:       vuln.Aliases,
+				Qualifiers: qualifiers,
+				Ranges:     ranges,
 			},
 		})
 	}
 	sort.Sort(internal.ByAffectedPackage(aphs))
 	return aphs
+}
+
+// govulndbImports extracts the affected package import paths and vulnerable symbols from the
+// OSV `ecosystem_specific.imports` field (see https://go.dev/security/vuln/database#schema).
+func govulndbImports(affected models.Affected) []db.GoImport {
+	raw, ok := affected.EcosystemSpecific["imports"]
+	if !ok {
+		return nil
+	}
+
+	// the ecosystem_specific field is unmarshalled as a generic map, so round-trip through JSON
+	// to get the typed shape
+	encoded, err := json.Marshal(raw)
+	if err != nil {
+		return nil
+	}
+	var imports []db.GoImport
+	if err := json.Unmarshal(encoded, &imports); err != nil {
+		return nil
+	}
+	return imports
 }
 
 func govulndbPackage(p models.Package) *db.Package {
